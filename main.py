@@ -1,16 +1,19 @@
-# This is a sample Python script.
+import csv
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import pandas as pd
 
+'''files reader'''
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+test_path = 'test.csv'
+train_path = 'train.csv'
+structure_path = 'Structure.txt'
+test_data = pd.read_csv(test_path)
+train_data = pd.read_csv(train_path)
+futures_struct = {} # key: future val: possible values
+with open(structure_path) as f:
+    structure_data = f.read()
+    f.close()
+structure_data = structure_data.split('\n')
+for line in structure_data:
+    s_line = line.split()
+    futures_struct[s_line[1]] = s_line[2]

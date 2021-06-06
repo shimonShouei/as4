@@ -1,6 +1,8 @@
 import csv
 
+import numpy as np
 import pandas as pd
+import statistics as stats
 # This is a sample Python script.
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
@@ -21,6 +23,18 @@ def readFile(structure_path):
 
     return futures_struct
 
+def data_preProcessing(data, futures_struct):
+    # for col in data:
+    #     data[col] = data[col].astype(np.object)
+    #     # data[col] = data[col].dtypes
+    #     print(data[col].dtypes)
+    for feature in futures_struct:
+        print(stats.mode(data[feature]))
+        if(data[feature].dtypes == "object"):
+            data[feature].fillna(stats.mode(data[feature]), inplace=True)
+        else:
+            data[feature].fillna(data[feature].mean(), inplace=True)
+
 
 def main():
     '''files reader'''
@@ -32,12 +46,13 @@ def main():
     train_data = pd.read_csv(train_path)
     data_shape= train_data.shape
     futures_struct = readFile(structure_path)  # key: future val: possible values
-
+    data_preProcessing(train_data, futures_struct)
     probabilty_dict = dict() # key: column Name and Feather name val: probabilty
 
     numberOfRows = data_shape[0] - 1
     for feateure in futures_struct.keys():
         feateure_dict = train_data[feateure].value_counts()
+        print(feateure_dict)
         for key in feateure_dict.keys():
             feateure_atrribute = "{0}_{1}".format(feateure,key)
             probabilty_dict[feateure_atrribute] = feateure_dict[key]/numberOfRows

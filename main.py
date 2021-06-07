@@ -35,6 +35,14 @@ def data_preProcessing(data, futures_struct):
         else:
             data[feature].fillna(data[feature].mean(), inplace=True)
 
+def postpreiory(futures_struct, numberOfRows, train_data):
+    probabilty_dict = dict()
+    for feateure in futures_struct.keys():
+        feateure_dict = train_data[feateure].value_counts()
+        # print(feateure_dict)
+        for atrribute in feateure_dict.keys():
+            feateure_atrribute = "{0}_{1}".format(feateure, atrribute)
+            probabilty_dict[feateure_atrribute] = feateure_dict[atrribute] / numberOfRows
 
 def main():
     '''files reader'''
@@ -47,15 +55,10 @@ def main():
     data_shape= train_data.shape
     futures_struct = readFile(structure_path)  # key: future val: possible values
     data_preProcessing(train_data, futures_struct)
-    probabilty_dict = dict() # key: column Name and Feather name val: probabilty
-
     numberOfRows = data_shape[0] - 1
-    for feateure in futures_struct.keys():
-        feateure_dict = train_data[feateure].value_counts()
-        print(feateure_dict)
-        for key in feateure_dict.keys():
-            feateure_atrribute = "{0}_{1}".format(feateure,key)
-            probabilty_dict[feateure_atrribute] = feateure_dict[key]/numberOfRows
+    postpreiory_probabilty_dict = postpreiory(futures_struct, numberOfRows) # key: column Name and Feather name val: probabilty
+    condintional_probabilty_dict = {}
+
 
 if __name__ == '__main__':
     root = Tk()

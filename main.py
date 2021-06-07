@@ -6,10 +6,9 @@ import statistics as stats
 # This is a sample Python script.
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-from GUI import Naïve_Bayes_Classifier
-from NaiveBayesModel import Naïve_Bayes_Model
+from as4.GUI import Naïve_Bayes_Classifier
+from as4.NaiveBayesModel import Naïve_Bayes_Model
 from tkinter import *
-
 
 def readFile(structure_path):
     futures_struct = {}  # key: future val: possible values
@@ -23,7 +22,6 @@ def readFile(structure_path):
         print(s_line[1], futures_struct[s_line[1]])
 
     return futures_struct
-
 
 def data_preProcessing(data, futures_struct):
     # for col in data:
@@ -42,22 +40,46 @@ def apreiory(futures_struct, numberOfRows, train_data):
     probabilty_dict = dict()
     for feateure in futures_struct.keys():
         feateure_dict = train_data[feateure].value_counts()
-        # print(feateure_dict)
         for atrribute in feateure_dict.keys():
             feateure_atrribute = "{0}_{1}".format(feateure, atrribute)
             probabilty_dict[feateure_atrribute] = feateure_dict[atrribute] / numberOfRows
+    return probabilty_dict
 
-
-
+def condintional_probabilty(futures_struct,train_data):
+    probabilty_df = pd.DataFrame(columns=["Y", "N"])
+    m_estimte = 2
+    feature_class = train_data["class"].value_counts()
+    mp = 2 / len(feature_class.keys())
+    futures_struct.pop("class")
+    for feateure in futures_struct.keys():
+        feateure_dict = train_data[feateure].value_counts()
+        for atrribute in feateure_dict.keys():
+            feateure_atrribute = "{0}_{1}".format(feateure, atrribute)
+            num_of_samples_with_attribute_and_yes = train_data[(train_data[feateure] == atrribute) & (train_data["class"] == "Y")].count()
+            num_of_samples_with_attribute_and_no = train_data[(train_data[feateure] == atrribute) & (train_data["class"] == "N")].count()
+            ans_class_yes = ( mp + (num_of_samples_with_attribute_and_yes) / (feature_class["Y"]) + m_estimte)
+            ans_class_no  =  ( mp + (num_of_samples_with_attribute_and_no ) / (feature_class["N"]) + m_estimte)
+            probabilty_df.loc[feateure_atrribute,"Y"] = ans_class_yes[feateure]
+            probabilty_df.loc[feateure_atrribute,"N"] = ans_class_no[feateure]
+    return probabilty_df
 
 def classifier(condintional_probabilty_df, apri_class_dict, class_val, record):
     final_prob_list = {}
-    for val in class_val:
-        final_prob_list[val] = apri_class_dict[val]
-        for index, row in condintional_probabilty_df:
-            final_prob_list[val] *= condintional_probabilty_df.loc[row, val]
+
+    for value in class_val:
+        final_prob_list[value] = apri_class_dict["class_" + value.__str__()]
+        for key,val in record.iteritems():
+            ind = key.__str__()+'_'+val.__str__()
+            final_prob_list[value] *= condintional_probabilty_df.loc[ind, value]
     return max(final_prob_list, key=final_prob_list.get)
 
+def predict(condintional_probabilty_df, apreiory_probabilty_dict, class_val, test_data):
+    output_arg = []
+    with open("output.txt", 'w') as file :  # Use file to refer to the file object
+        for index, row in test_data.iterrows():
+            classify = classifier(condintional_probabilty_df,apreiory_probabilty_dict, class_val, row)
+            # output_arg.append(classify)
+            file.write("{0} {1}\n".format(index+1,classify))
 
 def main():
     '''files reader'''
@@ -71,10 +93,12 @@ def main():
     futures_struct = readFile(structure_path)  # key: future val: possible values
     data_preProcessing(train_data, futures_struct)
     numberOfRows = data_shape[0] - 1
-    apreiory_probabilty_dict = apreiory(futures_struct, numberOfRows,
-                                        train_data)  # key: column Name and Feather name val: probabilty
+
     class_val = (futures_struct["class"].strip("} {")).split(',')
-    condintional_probabilty_dict = {}
+    apreiory_probabilty_dict = apreiory(futures_struct, numberOfRows, train_data) # key: column Name and Feather name val: probabilty
+    condintional_probabilty_df = condintional_probabilty(futures_struct,train_data)
+    predict(condintional_probabilty_df, apreiory_probabilty_dict, class_val, test_data)
+
 
 
 if __name__ == '__main__':

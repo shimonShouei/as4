@@ -6,9 +6,10 @@ import statistics as stats
 # This is a sample Python script.
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-from as4.GUI import Naïve_Bayes_Classifier
-from as4.NaiveBayesModel import Naïve_Bayes_Model
+from GUI import Naïve_Bayes_Classifier
+from NaiveBayesModel import Naïve_Bayes_Model
 from tkinter import *
+
 
 def readFile(structure_path):
     futures_struct = {}  # key: future val: possible values
@@ -23,6 +24,7 @@ def readFile(structure_path):
 
     return futures_struct
 
+
 def data_preProcessing(data, futures_struct):
     # for col in data:
     #     data[col] = data[col].astype(np.object)
@@ -30,12 +32,13 @@ def data_preProcessing(data, futures_struct):
     #     print(data[col].dtypes)
     for feature in futures_struct:
         print(stats.mode(data[feature]))
-        if(data[feature].dtypes == "object"):
+        if (data[feature].dtypes == "object"):
             data[feature].fillna(stats.mode(data[feature]), inplace=True)
         else:
             data[feature].fillna(data[feature].mean(), inplace=True)
 
-def postpreiory(futures_struct, numberOfRows, train_data):
+
+def apreiory(futures_struct, numberOfRows, train_data):
     probabilty_dict = dict()
     for feateure in futures_struct.keys():
         feateure_dict = train_data[feateure].value_counts()
@@ -43,6 +46,18 @@ def postpreiory(futures_struct, numberOfRows, train_data):
         for atrribute in feateure_dict.keys():
             feateure_atrribute = "{0}_{1}".format(feateure, atrribute)
             probabilty_dict[feateure_atrribute] = feateure_dict[atrribute] / numberOfRows
+
+
+
+
+def classifier(condintional_probabilty_df, apri_class_dict, class_val, record):
+    final_prob_list = {}
+    for val in class_val:
+        final_prob_list[val] = apri_class_dict[val]
+        for index, row in condintional_probabilty_df:
+            final_prob_list[val] *= condintional_probabilty_df.loc[row, val]
+    return max(final_prob_list, key=final_prob_list.get)
+
 
 def main():
     '''files reader'''
@@ -52,11 +67,13 @@ def main():
     structure_path = 'Structure.txt'
     test_data = pd.read_csv(test_path)
     train_data = pd.read_csv(train_path)
-    data_shape= train_data.shape
+    data_shape = train_data.shape
     futures_struct = readFile(structure_path)  # key: future val: possible values
     data_preProcessing(train_data, futures_struct)
     numberOfRows = data_shape[0] - 1
-    postpreiory_probabilty_dict = postpreiory(futures_struct, numberOfRows) # key: column Name and Feather name val: probabilty
+    apreiory_probabilty_dict = apreiory(futures_struct, numberOfRows,
+                                        train_data)  # key: column Name and Feather name val: probabilty
+    class_val = (futures_struct["class"].strip("} {")).split(',')
     condintional_probabilty_dict = {}
 
 

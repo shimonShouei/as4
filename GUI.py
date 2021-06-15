@@ -1,7 +1,9 @@
+import os
 from tkinter import *
 # import filedialog module
 from tkinter import filedialog
 from classifier import classifier
+from tkinter import messagebox
 
 
 class Naïve_Bayes_Classifier:
@@ -29,11 +31,12 @@ class Naïve_Bayes_Classifier:
         self.label_bins = Label(self.master, text="Discretization Bins:", bg='white')
 
         vcmd = self.master.register(self.validate)  # we have to wrap the command
-        self.entry_bins = Entry(self.master, validate="key")
+        vcmd1 = self.master.register(self.validateFolder)  # we have to wrap the command
+        self.entry_bins = Entry(self.master, validate="key", validatecommand=(vcmd, '%P'))
         # self.folderString = StringVar()
-        self.entry_browser = Entry(self.master, validate="key")
+        self.entry_browser = Entry(self.master, validate="key", validatecommand=(vcmd1, '%S'))
 
-        self.build_button = Button(self.master, text="Build", command=lambda: self.build())
+        self.build_button = Button(self.master, text="Build", command=lambda: self.build(), state="disabled")
         self.classify_button = Button(self.master, text="Classify", command=lambda: self.classify(), state="disabled")
 
         # Button label
@@ -52,40 +55,55 @@ class Naïve_Bayes_Classifier:
         self.master.mainloop()
 
     def build(self):
-        self.classifier = classifier(self.entry_bins.get(), self.entry_browser.get())
+        try:
+            self.classifier = classifier(self.entry_bins.get(), self.entry_browser.get())
+        except Exception:
+            messagebox.showinfo("Naïve Bayes Classifier", "One of the files are bad")
+            return
+
         self.classifier.build()
         self.classify_button["state"] = "normal"
+        messagebox.showinfo("Naïve Bayes Classifier", "Building classifier using train-set is done")
 
     def classify(self):
         self.classifier.classify()
+        messagebox.showinfo("Naïve Bayes Classifier", "Process is done")
 
     def validate(self, new_text):
-        if not new_text:  # the field is being cleared
-            self.entered_number = 0
+        flag = new_text.isdigit() and int(new_text) > 0
+        if flag:
+            self.build_button["state"] = "normal"
+        else:
+            self.build_button["state"] = "disabled"
+            messagebox.showerror("Naïve Bayes Classifier", "invalid number of bins")
+
+        return flag
+
+    def validateFolder(self, new_text):
+        listdir = os.listdir(new_text)
+        if not listdir.__contains__("train.csv"):
+            messagebox.showerror("Naïve Bayes Classifier", "wrong folder: train file is missing")
+            return False
+        if not listdir.__contains__("Structure.txt"):
+            messagebox.showerror("Naïve Bayes Classifier", "wrong folder: Structure file is missing")
+            return False
+        if not listdir.__contains__("test.csv"):
+            messagebox.showerror("Naïve Bayes Classifier", "wrong folder: test file is missing")
             return False
 
-        try:
-            self.entered_number = int(new_text)
+        else:
+            # files = [new_text + '/test.csv', new_text + '/train.csv', new_text + '/Structure.txt']
+            # for file in files:
+            #     if os.path.getsize(file) <= 0:
+            #         self.build_button["state"] = "disabled"
+            #         messagebox.showerror("Naïve Bayes Classifier", "{file_name} is Empty file".format(file_name=file))
+            #         return False
             return True
-        except ValueError:
-            return False
 
-    def update(self, method):
-        if method == "add":
-            self.total += self.entered_number
-        elif method == "subtract":
-            self.total -= self.entered_number
-        else:  # reset
-            self.total = 0
-
-        self.total_label_text.set(self.total)
-        self.entry.delete(0, END)
-
-    # Function for opening the
-    # file explorer window
     def browseFiles(self):
-        filename = filedialog.askdirectory()
-        self.entry_browser.insert(END, filename)
+        files_folder = filedialog.askdirectory()
+        self.entry_browser.delete(0, END)
+        self.entry_browser.insert(END, files_folder)
 
         # # Change label contents
         # label_file_explorer.configure(text="File Opened: " + filename)

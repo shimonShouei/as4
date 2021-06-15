@@ -7,7 +7,6 @@ import statistics as stats
 # This is a sample Python script.
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-from NaiveBayesModel import Naïve_Bayes_Model
 from tkinter import *
 from sklearn.naive_bayes import MultinomialNB
 from sklearn import preprocessing
@@ -20,12 +19,22 @@ class classifier:
         self.test_path = files_folder + '/test.csv'
         self.train_path = files_folder + '/train.csv'
         structure_path = files_folder + '/Structure.txt'
-
-        self.futures_struct = self.readFile(structure_path)  # key: future val: possible values
-        self.feature_keys = [key for key in self.futures_struct.keys() if key != "class"]
         self.num_of_bins = int(num_of_bins)
         self.model = None
         self.encoder = {}
+        self.futures_struct = self.readFile(structure_path)  # key: future val: possible values
+        self.feature_keys = [key for key in self.futures_struct.keys() if key != "class"]
+        tmp_train_data = pd.read_csv(self.train_path)
+        if tmp_train_data.shape[0] == 0 or len(set(tmp_train_data.columns).intersection(self.futures_struct)) != len(self.futures_struct.keys()):#self.futures_struct.keys().__contains__(tmp_train_data.columns):
+            raise Exception("Bad train file")
+        tmp_test_data = pd.read_csv(self.test_path)
+        if tmp_test_data.shape[0] == 0 or len(set(tmp_test_data.columns).intersection(self.futures_struct)) != len(self.futures_struct.keys()):#tmp_test_data.columns == self.futures_struct.keys():#self.futures_struct.keys().__contains__(tmp_test_data.columns):
+            raise Exception("Bad test file")
+        limit_ind = tmp_train_data.shape[0]
+        self.allData = pd.concat([tmp_train_data, tmp_test_data])
+        self.data_preProcessing()
+        self.train_data = self.allData.iloc[:limit_ind, :]
+        self.test_data = self.allData.iloc[limit_ind:, :]
 
     def readFile(self, structure_path):
         futures_struct = {}  # key: future val: possible values
@@ -35,23 +44,30 @@ class classifier:
         structure_data = structure_data.split('\n')
         for line in structure_data:
             s_line = line.split()
+            s_line[2] = s_line[2].strip('{ }').split(',')
             futures_struct[s_line[1]] = s_line[2]
-            # print(s_line[1], futures_struct[s_line[1]])
 
         return futures_struct
 
-    def data_preProcessing(self, data, futures_struct, num_of_bins):
+    def data_preProcessing(self):
         # for col in data:
         #     data[col] = data[col].astype(np.object)
         #     # data[col] = data[col].dtypes
         #     print(data[col].dtypes)
-        for feature in futures_struct:
+        le = preprocessing.LabelEncoder()
+        for feature in self.futures_struct:
             # print(stats.mode(data[feature]))
-            if data[feature].dtypes == "object" or data[feature].nunique() < 4:
-                data[feature].fillna(stats.mode(data[feature]), inplace=True)
+            if self.futures_struct[feature][0] != "NUMERIC":
+                self.encoder[feature] = le.fit(self.allData[feature])
+                self.allData[feature] = self.encoder[feature].transform(self.allData[feature])
+                self.allData[feature].fillna(stats.mode(self.allData[feature]), inplace=True)
             else:
-                data[feature].fillna(data[feature].mean(), inplace=True)
-                data[feature] = self.binning(data[feature])
+                self.allData[feature].fillna(self.allData[feature].mean(), inplace=True)
+                self.allData[feature] = self.binning(self.allData[feature])
+        # for key, val in self.futures_struct.items():
+        #     if self.allData[key].dtype == "object":
+        #         self.encoder[key] = le.fit(self.allData[key])
+        #         self.allData[key] = self.encoder[key].transform(self.allData[key])
 
     def binning(self, col):
         # groups_name = range(num_of_bins)
@@ -122,40 +138,39 @@ class classifier:
     #             # output_arg.append(classify)
     #             file.write("{0} {1}\n".format(index + 1, classify))
 
-    def test_discrate(self, test_data):
-        for col in test_data:
-            if test_data[col].dtypes == "object" or test_data[col].nunique() < 4:
-                continue
-            else:
-                test_data[col] = self.binning(test_data[col])
+    # def test_discrate(self, test_data):
+    #     for col in test_data:
+    #         if test_data[col].dtypes == "object" or test_data[col].nunique() < 4:
+    #             continue
+    #         else:
+    #             test_data[col] = self.binning(test_data[col])
 
     def build(self):
-        train_data = pd.read_csv(self.train_path)
-        self.data_preProcessing(train_data, self.futures_struct, self.num_of_bins)
-        # class_val = (futures_struct["class"].strip("} {")).split(',')
-        # apreiory_probabilty_dict = apreiory(futures_struct, numberOfRows,
-        #                                     train_data)  # key: column Name and Feather name val: probabilty
-        # condintional_probabilty_df = condintional_probabilty(futures_struct, train_data)
-        # predict(condintional_probabilty_df, apreiory_probabilty_dict, class_val, test_data)
-        for key, val in self.futures_struct.items():
-            if train_data[key].dtype == "object":
-                le = preprocessing.LabelEncoder()
-                self.encoder[key] = le.fit(train_data[key])
-                train_data[key] = self.encoder[key].transform(train_data[key])
-        y_train = train_data.loc[:, "class"]
-        X_train = train_data.loc[:, self.feature_keys]
+        # train_data = pd.read_csv(self.train_path)
+        # self.data_preProcessing(train_data, self.futures_struct)
+        # # class_val = (futures_struct["class"].strip("} {")).split(',')
+        # # apreiory_probabilty_dict = apreiory(futures_struct, numberOfRows,
+        # #                                     train_data)  # key: column Name and Feather name val: probabilty
+        # # condintional_probabilty_df = condintional_probabilty(futures_struct, train_data)
+        # # predict(condintional_probabilty_df, apreiory_probabilty_dict, class_val, test_data)
+        # for key, val in self.futures_struct.items():
+        #     if train_data[key].dtype == "object":
+        #         le = preprocessing.LabelEncoder()
+        #         self.encoder[key] = le.fit(train_data[key])
+        #         train_data[key] = self.encoder[key].transform(train_data[key])
+        y_train = self.train_data.loc[:, "class"]
+        X_train = self.train_data.loc[:, self.feature_keys]
 
         self.model = self.nb.fit(X_train, y_train)
 
     def classify(self):
-        """files reader"""
-        test_data = pd.read_csv(self.test_path)
-        self.data_preProcessing(test_data, self.futures_struct, self.num_of_bins)
-        for key, val in self.futures_struct.items():
-            if test_data[key].dtype == "object":
-                test_data[key] = self.encoder[key].transform(test_data[key])
-        y_test = test_data.loc[:, "class"]
-        X_test = test_data.loc[:, self.feature_keys]
+        # test_data = pd.read_csv(self.test_path)
+        # self.data_preProcessing(test_data, self.futures_struct)
+        # for key, val in self.futures_struct.items():
+        #     if test_data[key].dtype == "object":
+        #         test_data[key] = self.encoder[key].transform(test_data[key])
+        y_test = self.test_data.loc[:, "class"]
+        X_test = self.test_data.loc[:, self.feature_keys]
         y_pred = self.model.predict(X_test)
         with open("output.txt", 'w') as file:  # Use file to refer to the file object
             ind = 1

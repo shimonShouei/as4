@@ -2,7 +2,7 @@ import os
 from tkinter import *
 # import filedialog module
 from tkinter import filedialog
-from classifier import classifier
+from classifier import Classifier
 from tkinter import messagebox
 
 
@@ -12,28 +12,16 @@ class Naïve_Bayes_Classifier:
         self.master = Tk()
         self.master.title("Naïve Bayes Classifier")
         self.master.configure(bg='white')
-        # self.master.geometry("600x400")
         self.master.resizable(0, 0)
         self.master.grid_columnconfigure(0, weight=5)
         self.master.grid_rowconfigure(0, weight=5)
         self.classifier = None
-        # self.frame = Frame(self.master)
-        # self.frame.pack(expand=1, fill='both')
-
-        # self.total = 0
-        # self.entered_number = 0
-
-        # self.total_label_text = IntVar()
-        # self.total_label_text.set(self.total)
-        # self.total_label = Label(master, textvariable=self.total_label_text)
-
         self.label_browse = Label(self.master, text="Directory Path", bg='white')
         self.label_bins = Label(self.master, text="Discretization Bins:", bg='white')
 
         vcmd = self.master.register(self.validate)  # we have to wrap the command
         vcmd1 = self.master.register(self.validateFolder)  # we have to wrap the command
         self.entry_bins = Entry(self.master, validate="key", validatecommand=(vcmd, '%P'))
-        # self.folderString = StringVar()
         self.entry_browser = Entry(self.master, validate="key", validatecommand=(vcmd1, '%S'))
 
         self.build_button = Button(self.master, text="Build", command=lambda: self.build(), state="disabled")
@@ -56,7 +44,7 @@ class Naïve_Bayes_Classifier:
 
     def build(self):
         try:
-            self.classifier = classifier(self.entry_bins.get(), self.entry_browser.get())
+            self.classifier = Classifier(self.entry_bins.get(), self.entry_browser.get())
         except Exception:
             messagebox.showinfo("Naïve Bayes Classifier", "One of the files are bad")
             return
@@ -92,21 +80,12 @@ class Naïve_Bayes_Classifier:
             return False
 
         else:
-            # files = [new_text + '/test.csv', new_text + '/train.csv', new_text + '/Structure.txt']
-            # for file in files:
-            #     if os.path.getsize(file) <= 0:
-            #         self.build_button["state"] = "disabled"
-            #         messagebox.showerror("Naïve Bayes Classifier", "{file_name} is Empty file".format(file_name=file))
-            #         return False
             return True
 
     def browseFiles(self):
         files_folder = filedialog.askdirectory()
         self.entry_browser.delete(0, END)
         self.entry_browser.insert(END, files_folder)
-
-        # # Change label contents
-        # label_file_explorer.configure(text="File Opened: " + filename)
 
 
 if __name__ == '__main__':

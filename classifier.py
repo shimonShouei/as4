@@ -1,18 +1,10 @@
-import csv
-
-import numpy
-import numpy as np
 import pandas as pd
 import statistics as stats
-# This is a sample Python script.
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-from tkinter import *
 from sklearn.naive_bayes import MultinomialNB
 from sklearn import preprocessing
 
 
-class classifier:
+class Classifier:
     def __init__(self, num_of_bins, files_folder=''):
         self.nb = MultinomialNB(alpha=2)
         self.files_folder = files_folder
@@ -25,10 +17,12 @@ class classifier:
         self.futures_struct = self.readFile(structure_path)  # key: future val: possible values
         self.feature_keys = [key for key in self.futures_struct.keys() if key != "class"]
         tmp_train_data = pd.read_csv(self.train_path)
-        if tmp_train_data.shape[0] == 0 or len(set(tmp_train_data.columns).intersection(self.futures_struct)) != len(self.futures_struct.keys()):#self.futures_struct.keys().__contains__(tmp_train_data.columns):
+        if tmp_train_data.shape[0] == 0 or not set(self.futures_struct.keys()).issubset(
+                set(tmp_train_data.columns)):  # len(set(tmp_train_data.columns).intersection(self.futures_struct)) != len(self.futures_struct.keys()):#self.futures_struct.keys().__contains__(tmp_train_data.columns):
             raise Exception("Bad train file")
         tmp_test_data = pd.read_csv(self.test_path)
-        if tmp_test_data.shape[0] == 0 or len(set(tmp_test_data.columns).intersection(self.futures_struct)) != len(self.futures_struct.keys()):#tmp_test_data.columns == self.futures_struct.keys():#self.futures_struct.keys().__contains__(tmp_test_data.columns):
+        if tmp_test_data.shape[0] == 0 or not set(self.futures_struct.keys()).issubset(
+                set(tmp_test_data.columns)):  # len(set(tmp_test_data.columns).intersection(self.futures_struct)) != len(self.futures_struct.keys()):
             raise Exception("Bad test file")
         limit_ind = tmp_train_data.shape[0]
         self.allData = pd.concat([tmp_train_data, tmp_test_data])
@@ -50,13 +44,8 @@ class classifier:
         return futures_struct
 
     def data_preProcessing(self):
-        # for col in data:
-        #     data[col] = data[col].astype(np.object)
-        #     # data[col] = data[col].dtypes
-        #     print(data[col].dtypes)
         le = preprocessing.LabelEncoder()
         for feature in self.futures_struct:
-            # print(stats.mode(data[feature]))
             if self.futures_struct[feature][0] != "NUMERIC":
                 self.encoder[feature] = le.fit(self.allData[feature])
                 self.allData[feature] = self.encoder[feature].transform(self.allData[feature])
@@ -64,111 +53,17 @@ class classifier:
             else:
                 self.allData[feature].fillna(self.allData[feature].mean(), inplace=True)
                 self.allData[feature] = self.binning(self.allData[feature])
-        # for key, val in self.futures_struct.items():
-        #     if self.allData[key].dtype == "object":
-        #         self.encoder[key] = le.fit(self.allData[key])
-        #         self.allData[key] = self.encoder[key].transform(self.allData[key])
 
     def binning(self, col):
-        # groups_name = range(num_of_bins)
-        # minval = col.min()
-        # maxval = col.max()
-        # # cut_points = [(maxval - minval) / 3, 2 * (maxval - minval) / 3]
-        # # break_points = [minval] + cut_points + [maxval]
-        # # colBin = pd.cut(col, bins=break_points, labels=groups_name, include_lowest=True)
-        # # return colBin
-        # bins = numpy.linspace(minval, maxval, self.num_of_bins)
-        # cut_points = (numpy.histogram(col, bins, weights=col)[0] /
-        #               numpy.histogram(col, bins)[0])
-        # break_points = np.insert(cut_points, 0, minval)
-        # break_points = np.insert(break_points, len(break_points), maxval)
-
-        # colBin = pd.cut(col, bins=break_points, labels=groups_name, duplicates='drop', include_lowest=True)
         kBins = preprocessing.KBinsDiscretizer(self.num_of_bins, encode='ordinal')
-        return kBins.fit_transform(col.values.reshape((len(col),1)))
-
-    # def apreiory(futures_struct, numberOfRows, train_data):
-    #     probabilty_dict = dict()
-    #     for feateure in futures_struct.keys():
-    #         feateure_dict = train_data[feateure].value_counts()
-    #         for atrribute in feateure_dict.keys():
-    #             feateure_atrribute = "{0}_{1}".format(feateure, atrribute)
-    #             probabilty_dict[feateure_atrribute] = feateure_dict[atrribute] / numberOfRows
-    #     return probabilty_dict
-    #
-    #
-    # def condintional_probabilty(futures_struct, train_data):
-    #     probabilty_df = pd.DataFrame(columns=["Y", "N"])
-    #     m_estimte = 2
-    #     feature_class = train_data["class"].value_counts()
-    #     mp = 2 / len(feature_class.keys())
-    #     futures_struct.pop("class")
-    #     for feateure in futures_struct.keys():
-    #         feateure_dict = train_data[feateure].value_counts()
-    #         for atrribute in feateure_dict.keys():
-    #             feateure_atrribute = "{0}_{1}".format(feateure, atrribute)
-    #             num_of_samples_with_attribute_and_yes = train_data.loc[
-    #                 (train_data[feateure] == atrribute) & (train_data["class"] == "Y")].count()
-    #             num_of_samples_with_attribute_and_no = train_data[
-    #                 (train_data[feateure] == atrribute) & (train_data["class"] == "N")].count()
-    #             ans_class_yes = (mp + (num_of_samples_with_attribute_and_yes)) / ((feature_class["Y"]) + m_estimte)
-    #             ans_class_no = (mp + (num_of_samples_with_attribute_and_no)) / ((feature_class["N"]) + m_estimte)
-    #             probabilty_df.loc[feateure_atrribute, "Y"] = ans_class_yes[feateure]
-    #             probabilty_df.loc[feateure_atrribute, "N"] = ans_class_no[feateure]
-    #     return probabilty_df
-    #
-    #
-    # def classifier(condintional_probabilty_df, apri_class_dict, class_val, record):
-    #     final_prob_list = {}
-    #     for value in class_val:
-    #         final_prob_list[value] = apri_class_dict["class_" + value.__str__()]
-    #         for key, val in record.iteritems():
-    #             if key == "class":
-    #                 continue
-    #             ind = key.__str__() + '_' + val.__str__()
-    #             final_prob_list[value] *= condintional_probabilty_df.loc[ind, value]
-    #     return max(final_prob_list, key=final_prob_list.get)
-    #
-    #
-    # def predict(condintional_probabilty_df, apreiory_probabilty_dict, class_val, test_data):
-    #     output_arg = []
-    #     with open("output.txt", 'w') as file:  # Use file to refer to the file object
-    #         for index, row in test_data.iterrows():
-    #             classify = classifier(condintional_probabilty_df, apreiory_probabilty_dict, class_val, row)
-    #             # output_arg.append(classify)
-    #             file.write("{0} {1}\n".format(index + 1, classify))
-
-    # def test_discrate(self, test_data):
-    #     for col in test_data:
-    #         if test_data[col].dtypes == "object" or test_data[col].nunique() < 4:
-    #             continue
-    #         else:
-    #             test_data[col] = self.binning(test_data[col])
+        return kBins.fit_transform(col.values.reshape((len(col), 1)))
 
     def build(self):
-        # train_data = pd.read_csv(self.train_path)
-        # self.data_preProcessing(train_data, self.futures_struct)
-        # # class_val = (futures_struct["class"].strip("} {")).split(',')
-        # # apreiory_probabilty_dict = apreiory(futures_struct, numberOfRows,
-        # #                                     train_data)  # key: column Name and Feather name val: probabilty
-        # # condintional_probabilty_df = condintional_probabilty(futures_struct, train_data)
-        # # predict(condintional_probabilty_df, apreiory_probabilty_dict, class_val, test_data)
-        # for key, val in self.futures_struct.items():
-        #     if train_data[key].dtype == "object":
-        #         le = preprocessing.LabelEncoder()
-        #         self.encoder[key] = le.fit(train_data[key])
-        #         train_data[key] = self.encoder[key].transform(train_data[key])
         y_train = self.train_data.loc[:, "class"]
         X_train = self.train_data.loc[:, self.feature_keys]
-
         self.model = self.nb.fit(X_train, y_train)
 
     def classify(self):
-        # test_data = pd.read_csv(self.test_path)
-        # self.data_preProcessing(test_data, self.futures_struct)
-        # for key, val in self.futures_struct.items():
-        #     if test_data[key].dtype == "object":
-        #         test_data[key] = self.encoder[key].transform(test_data[key])
         y_test = self.test_data.loc[:, "class"]
         X_test = self.test_data.loc[:, self.feature_keys]
         y_pred = self.model.predict(X_test)
